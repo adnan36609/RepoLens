@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { getUsageSnapshot } from "@/lib/usage/usage";
 
 function statusClass(status: string) {
   if (status === "completed") return "app-status-completed";
@@ -27,6 +28,8 @@ export default async function DashboardPage() {
     },
   });
 
+  const usage = await getUsageSnapshot(session.user.id);
+
   return (
     <main className="app-page">
       <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -49,6 +52,45 @@ export default async function DashboardPage() {
           + Analyze repository
         </Link>
       </header>
+
+      <section className="mb-8 grid gap-3 sm:grid-cols-3">
+        <div className="app-panel px-5 py-4">
+          <p className="text-xs text-[color:var(--app-muted)]">
+            Analyses today
+          </p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">
+            {usage.analysesUsedToday}
+            <span className="text-sm font-normal text-[color:var(--app-muted)]">
+              {" "}
+              / {usage.limits.analysesPerDay}
+            </span>
+          </p>
+        </div>
+
+        <div className="app-panel px-5 py-4">
+          <p className="text-xs text-[color:var(--app-muted)]">
+            AI interactions this hour
+          </p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">
+            {usage.chatUsedThisHour}
+            <span className="text-sm font-normal text-[color:var(--app-muted)]">
+              {" "}
+              / {usage.limits.chatPerHour}
+            </span>
+          </p>
+        </div>
+
+        <div className="app-panel px-5 py-4">
+          <p className="text-xs text-[color:var(--app-muted)]">Projects</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">
+            {usage.projectCount}
+            <span className="text-sm font-normal text-[color:var(--app-muted)]">
+              {" "}
+              / {usage.limits.maxProjects}
+            </span>
+          </p>
+        </div>
+      </section>
 
       {projects.length === 0 ? (
         <section className="app-panel border-dashed px-8 py-14 text-center">

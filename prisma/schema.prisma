@@ -27,6 +27,7 @@ model User {
   accounts         Account[]
   sessions         Session[]
   projects         Project[]
+  usageEvents   UsageEvent[]
 }
 
 
@@ -127,4 +128,20 @@ model Report {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+}
+
+enum UsageEventType {
+  analysis
+  chat
+}
+
+model UsageEvent {
+  id        String          @id @default(uuid())
+  userId    String
+  type      UsageEventType
+  createdAt DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, createdAt])
 }
