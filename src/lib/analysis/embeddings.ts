@@ -21,6 +21,7 @@ async function getExtractor(): Promise<FeatureExtractor> {
 
     // Run fully from the Hugging Face hub cache; no local model path required.
     env.allowLocalModels = false;
+    env.backends.onnx.wasm.numThreads = 1;
 
     extractorPromise = pipeline(
       "feature-extraction",

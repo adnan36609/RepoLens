@@ -6,8 +6,6 @@ const nextConfig: NextConfig = {
     "tree-sitter",
     "tree-sitter-javascript",
     "tree-sitter-typescript",
-    "@xenova/transformers",
-    "onnxruntime-node",
     "sharp",
   ],
   experimental: {
