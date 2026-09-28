@@ -2,7 +2,7 @@ import type { ExtractedFile } from "@/lib/files/filters";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import path from "path";
 
-const DATA_ROOT = path.join(process.cwd(), ".data", "projects");
+const DATA_ROOT = path.join("/tmp", "repo-lens", "projects");
 
 export type ProjectManifestEntry = {
   relativePath: string;
