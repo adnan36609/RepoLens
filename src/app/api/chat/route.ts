@@ -7,7 +7,11 @@ import {
 } from "@/lib/analysis/chat-rag";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
+import {
+  assertCanSendChat,
+  recordChatUsage,
+  UsageLimitError,
+} from "@/lib/usage/usage";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 export const runtime = "nodejs";
@@ -56,15 +60,17 @@ export async function POST(request: Request) {
       );
     }
 
-    await assertChatRateLimit(session.user.id);
-
     const question = extractLastUserText(messages);
+
     if (!question) {
       return Response.json(
         { error: "Could not find a user question in the messages." },
         { status: 400 },
       );
     }
+
+    await assertCanSendChat(session.user.id);
+    await recordChatUsage(session.user.id);
 
     const { chunks, sources } = await retrieveChatContext(project.id, question);
 
@@ -88,8 +94,14 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    if (error instanceof RateLimitError) {
-      return Response.json({ error: error.message }, { status: 429 });
+    if (error instanceof UsageLimitError) {
+      return Response.json(
+        {
+          error: error.message,
+          code: error.code,
+        },
+        { status: 429 },
+      );
     }
 
     console.error("Chat API error:", error);

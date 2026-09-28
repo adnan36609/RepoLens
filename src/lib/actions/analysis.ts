@@ -14,6 +14,11 @@ import { MAX_REPO_SIZE_BYTES } from "@/lib/limits";
 import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
+import {
+  assertCanRunAnalysis,
+  recordAnalysisUsage,
+  UsageLimitError,
+} from "@/lib/usage/usage";
 
 export type RetryState = {
   error?: string;
@@ -212,13 +217,23 @@ export async function generateReportAction(
   if (!project) return { error: "Project not found." };
 
   try {
+    await assertCanRunAnalysis(project.userId);
+    await recordAnalysisUsage(project.userId);
+
     await generateProjectReport(project.id);
+
     revalidatePath(`/projects/${project.id}`);
     revalidatePath(`/projects/${project.id}/report`);
     revalidatePath("/dashboard");
+
     redirect(`/projects/${project.id}/report`);
   } catch (error) {
     if (isRedirectError(error)) throw error;
+
+    if (error instanceof UsageLimitError) {
+      return { error: error.message };
+    }
+
     return {
       error:
         error instanceof Error

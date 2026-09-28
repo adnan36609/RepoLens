@@ -1,6 +1,7 @@
 import { runFullProjectAnalysis } from "@/lib/analysis/pipeline";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { assertCanRunAnalysis, recordAnalysisUsage } from "@/lib/usage/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -58,10 +59,16 @@ export async function POST(_request: Request, context: RouteContext) {
   }
 
   try {
+    await assertCanRunAnalysis(session.user.id);
+
+    await recordAnalysisUsage(session.user.id);
+
     await runFullProjectAnalysis(project.id);
+
     const updated = await prisma.project.findUnique({
       where: { id: project.id },
     });
+
     return Response.json({
       ok: true,
       status: updated?.status ?? "completed",
@@ -72,6 +79,18 @@ export async function POST(_request: Request, context: RouteContext) {
     const updated = await prisma.project.findUnique({
       where: { id: project.id },
     });
+
+    if (error instanceof Error && error.name === "UsageLimitError") {
+      return Response.json(
+        {
+          ok: false,
+          error: error.message,
+          code: "analyses",
+        },
+        { status: 429 },
+      );
+    }
+
     return Response.json(
       {
         ok: false,

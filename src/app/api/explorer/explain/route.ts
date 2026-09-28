@@ -2,7 +2,11 @@ import { getLanguageModel } from "@/lib/ai/llm";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { readProjectFile } from "@/lib/files/explorer";
-import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
+import {
+  assertCanSendChat,
+  recordChatUsage,
+  UsageLimitError,
+} from "@/lib/usage/usage";
 import { generateText } from "ai";
 
 export const runtime = "nodejs";
@@ -40,12 +44,13 @@ export async function POST(request: Request) {
       return Response.json({ error: "Project not found" }, { status: 404 });
     }
 
-    await assertChatRateLimit(session.user.id);
-
     const file = await readProjectFile(projectId, filePath);
     if (!file) {
       return Response.json({ error: "File not found" }, { status: 404 });
     }
+
+    await assertCanSendChat(session.user.id);
+    await recordChatUsage(session.user.id);
 
     const truncated =
       file.content.length > 12000
@@ -75,8 +80,14 @@ export async function POST(request: Request) {
       filePath: file.relativePath,
     });
   } catch (error) {
-    if (error instanceof RateLimitError) {
-      return Response.json({ error: error.message }, { status: 429 });
+    if (error instanceof UsageLimitError) {
+      return Response.json(
+        {
+          error: error.message,
+          code: error.code,
+        },
+        { status: 429 },
+      );
     }
     console.error("Explorer explain API error:", error);
     return Response.json(

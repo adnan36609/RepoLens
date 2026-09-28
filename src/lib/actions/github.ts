@@ -13,6 +13,12 @@ import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { runFullProjectAnalysis } from "@/lib/analysis/pipeline";
+import {
+  assertCanCreateProject,
+  assertCanRunAnalysis,
+  recordAnalysisUsage,
+  UsageLimitError,
+} from "@/lib/usage/usage";
 
 export type ProjectActionState = {
   error?: string;
@@ -54,8 +60,6 @@ async function finalizeProjectFromZip(options: {
       progressPercent: 10,
     },
   });
-
-  // await recordAnalysisUsage(options.userId);
 
   try {
     await setProjectProgress(project.id, {
@@ -147,6 +151,16 @@ export async function createProjectFromGitHub(
   formData: FormData,
 ): Promise<ProjectActionState> {
   const user = await requireUser();
+
+  try {
+    await assertCanCreateProject(user.id);
+  } catch (error) {
+    if (error instanceof UsageLimitError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+
   const fullName = String(formData.get("fullName") ?? "");
   const defaultBranch = String(formData.get("defaultBranch") ?? "");
 
@@ -187,6 +201,8 @@ export async function createProjectFromGitHub(
     });
 
     if (!result.failed) {
+      await assertCanRunAnalysis(user.id);
+      await recordAnalysisUsage(user.id);
       await runFullProjectAnalysis(result.projectId);
     }
 
@@ -206,6 +222,16 @@ export async function createProjectFromZip(
   formData: FormData,
 ): Promise<ProjectActionState> {
   const user = await requireUser();
+
+  try {
+    await assertCanCreateProject(user.id);
+  } catch (error) {
+    if (error instanceof UsageLimitError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+
   const file = formData.get("file");
 
   if (!(file instanceof File)) {
@@ -238,6 +264,8 @@ export async function createProjectFromZip(
     });
 
     if (!result.failed) {
+      await assertCanRunAnalysis(user.id);
+      await recordAnalysisUsage(user.id);
       await runFullProjectAnalysis(result.projectId);
     }
 
