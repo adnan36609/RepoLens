@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getUsageSnapshot } from "@/lib/usage/usage";
 
 function statusClass(status: string) {
@@ -13,22 +14,24 @@ function statusClass(status: string) {
 
 export default async function DashboardPage() {
   const session = await auth();
-  if (!session?.user) return null;
 
-  const projects = await prisma.project.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    include: {
-      report: {
-        select: { healthScore: true },
-      },
-      _count: {
-        select: { chunks: true },
-      },
-    },
-  });
+  if (!session?.user) redirect("/login");
 
-  const usage = await getUsageSnapshot(session.user.id);
+  const [projects, usage] = await Promise.all([
+    prisma.project.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        report: {
+          select: { healthScore: true },
+        },
+        _count: {
+          select: { chunks: true },
+        },
+      },
+    }),
+    getUsageSnapshot(session.user.id),
+  ]);
 
   return (
     <main className="app-page">

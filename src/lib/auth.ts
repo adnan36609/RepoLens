@@ -71,7 +71,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const profile = (await res.json()) as { login?: string };
             if (profile.login) data.githubUsername = profile.login;
           }
-        } catch (error) {}
+        } catch {
+          // GitHub profile lookup is optional; authentication can still succeed.
+        }
       }
 
       await prisma.user.update({

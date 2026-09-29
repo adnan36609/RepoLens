@@ -1,4 +1,6 @@
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { auth } from "@/lib/auth";
 import Link from "next/link";
 
 const CODE_LINES = [
@@ -69,10 +71,7 @@ function CodePlane() {
 
       <pre>
         {lines.map((line, index) => (
-          <span
-            key={`${line.text}-${index}`}
-            className={line.cls || undefined}
-          >
+          <span key={`${line.text}-${index}`} className={line.cls || undefined}>
             {line.text}
             {"\n"}
           </span>
@@ -82,14 +81,15 @@ function CodePlane() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth();
+  const signedIn = !!session?.user?.id;
+
   return (
     <div className="landing-shell">
-      {/* Hero */}
-      <section id="top" className="landing-hero">
-        <div className="landing-hero-glow" aria-hidden />
-
-        <div className="relative z-40 mx-auto w-full max-w-6xl px-6 pt-6 sm:px-10">
+      {/* Sticky navbar */}
+      <div className="sticky top-0 z-50 px-6 pt-4 sm:px-10">
+        <div className="mx-auto w-full max-w-6xl">
           <header className="landing-header landing-reveal flex items-center justify-between gap-3 rounded-2xl px-4 py-3 sm:gap-4 sm:px-5">
             <a
               href="#top"
@@ -116,22 +116,42 @@ export default function HomePage() {
             <div className="flex shrink-0 items-center gap-2 text-sm sm:gap-3">
               <ThemeToggle className="border-(--landing-line) bg-transparent hover:bg-(--landing-fog)" />
 
-              <Link
-                href="/login"
-                className="text-(--landing-muted) transition-colors hover:text-(--landing-ink)"
-              >
-                Sign in
-              </Link>
+              {signedIn ? (
+                <>
+                  <SignOutButton />
 
-              <Link
-                href="/register"
-                className="rounded-xl bg-(--landing-ink) px-3.5 py-2 font-medium text-(--landing-paper) transition-opacity hover:opacity-90"
-              >
-                Get started
-              </Link>
+                  <Link
+                    href="/dashboard"
+                    className="rounded-xl bg-(--landing-ink) px-3.5 py-2 font-medium text-(--landing-paper) transition-opacity hover:opacity-90"
+                  >
+                    Dashboard
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-(--landing-muted) transition-colors hover:text-(--landing-ink)"
+                  >
+                    Sign in
+                  </Link>
+
+                  <Link
+                    href="/register"
+                    className="rounded-xl bg-(--landing-ink) px-3.5 py-2 font-medium text-(--landing-paper) transition-opacity hover:opacity-90"
+                  >
+                    Get started
+                  </Link>
+                </>
+              )}
             </div>
           </header>
         </div>
+      </div>
+
+      {/* Hero */}
+      <section id="top" className="landing-hero">
+        <div className="landing-hero-glow" aria-hidden />
 
         <div className="relative z-10 mx-auto grid min-h-[calc(100svh-5.5rem)] w-full max-w-6xl items-center gap-10 px-6 pb-16 pt-10 sm:px-10 md:grid-cols-[1.05fr_0.95fr] md:gap-12 lg:gap-14">
           <div className="py-6 sm:py-10">
@@ -217,9 +237,7 @@ export default function HomePage() {
                 </span>
 
                 <div>
-                  <h3 className="landing-title text-2xl">
-                    {item.title}
-                  </h3>
+                  <h3 className="landing-title text-2xl">{item.title}</h3>
 
                   <p className="mt-3 max-w-2xl text-base leading-relaxed text-(--landing-muted)">
                     {item.text}
@@ -249,9 +267,7 @@ export default function HomePage() {
           <div className="mt-14 grid gap-x-10 gap-y-12 border-t border-(--landing-line) pt-12 md:grid-cols-3">
             {OUTCOMES.map((item) => (
               <div key={item.title}>
-                <h3 className="landing-title text-xl">
-                  {item.title}
-                </h3>
+                <h3 className="landing-title text-xl">{item.title}</h3>
 
                 <p className="mt-3 text-sm leading-relaxed text-(--landing-muted) sm:text-base">
                   {item.text}
@@ -270,8 +286,8 @@ export default function HomePage() {
           </h2>
 
           <p className="mt-5 max-w-xl text-base text-(--landing-muted) sm:text-lg">
-            Repository analysis, health insights, and grounded code
-            explanations in one workflow.
+            Repository analysis, health insights, and grounded code explanations
+            in one workflow.
           </p>
 
           <div className="landing-demo mt-12 overflow-hidden rounded-3xl p-6 text-white sm:p-10">
@@ -283,10 +299,7 @@ export default function HomePage() {
 
                 <p className="landing-score landing-title mt-5 text-6xl sm:text-7xl">
                   82
-                  <span className="text-2xl text-white/45">
-                    {" "}
-                    / 100
-                  </span>
+                  <span className="text-2xl text-white/45"> / 100</span>
                 </p>
 
                 <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/70">
@@ -363,9 +376,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-(--landing-line) px-6 py-8 text-sm text-(--landing-muted) sm:px-10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-          <p className="landing-brand text-(--landing-ink)">
-            RepoLens
-          </p>
+          <p className="landing-brand text-(--landing-ink)">RepoLens</p>
 
           <p>Next.js · RAG · Groq · pgvector</p>
         </div>
