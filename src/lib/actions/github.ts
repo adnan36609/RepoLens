@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { runFullProjectAnalysis } from "@/lib/analysis/pipeline";
+import { refreshProjectSources } from "@/lib/analysis/project-sources";
 import {
   assertCanCreateProject,
   assertCanRunAnalysis,
@@ -152,6 +153,41 @@ export async function createProjectFromGitHub(
 ): Promise<ProjectActionState> {
   const user = await requireUser();
 
+  const fullName = String(formData.get("fullName") ?? "");
+  const defaultBranch = String(formData.get("defaultBranch") ?? "");
+
+  if (!fullName.includes("/")) {
+    return { error: "Invalid repository selection." };
+  }
+
+  const repositoryUrl = `https://github.com/${fullName}`;
+
+  const existingProject = await prisma.project.findFirst({
+    where: {
+      userId: user.id,
+      source: "github",
+      repositoryUrl,
+    },
+  });
+
+  if (existingProject) {
+    try {
+      await refreshProjectSources(existingProject);
+
+      revalidatePath("/dashboard");
+      redirect(`/projects/${existingProject.id}/progress`);
+    } catch (error) {
+      if (isRedirectError(error)) throw error;
+
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to refresh the existing repository.",
+      };
+    }
+  }
+
   try {
     await assertCanCreateProject(user.id);
   } catch (error) {
@@ -159,13 +195,6 @@ export async function createProjectFromGitHub(
       return { error: error.message };
     }
     throw error;
-  }
-
-  const fullName = String(formData.get("fullName") ?? "");
-  const defaultBranch = String(formData.get("defaultBranch") ?? "");
-
-  if (!fullName.includes("/")) {
-    return { error: "Invalid repository selection." };
   }
 
   const dbUser = await prisma.user.findUnique({

@@ -71,19 +71,27 @@ export async function readProjectFile(
   relativePath: string,
 ): Promise<ProjectFileContent | null> {
   const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
+
   if (!normalized || normalized.includes("..") || path.isAbsolute(normalized)) {
     return null;
   }
 
   const manifest = await readProjectManifest(projectId);
   const entry = manifest.find((item) => item.relativePath === normalized);
+
   if (!entry) return null;
 
-  const absolute = path.join(getProjectDataDir(projectId), "files", normalized);
+  const absolute = path.join(
+    getProjectDataDir(projectId),
+    "files",
+    normalized,
+  );
   const root = path.join(getProjectDataDir(projectId), "files");
+
   if (!absolute.startsWith(root)) return null;
 
   const content = await readFile(absolute, "utf8");
+
   return {
     relativePath: normalized,
     content,
