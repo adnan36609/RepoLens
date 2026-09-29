@@ -34,113 +34,99 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <main className="app-page">
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <main className="app-page repolens-workspace">
+      <header className="repolens-workspace-header">
         <div>
-          <p className="app-kicker">Workspace</p>
-          <h1 className="app-title mt-2 text-3xl sm:text-4xl">
+          <p className="repolens-workspace-kicker">WORKSPACE</p>
+
+          <h1 className="repolens-workspace-title">
             Hello, {session.user.name?.split(" ")[0] ?? "there"}
           </h1>
-          <p className="mt-2 max-w-lg text-sm text-[color:var(--app-muted)]">
-            Your analyzed repositories and health scores live here.
+
+          <p className="repolens-workspace-description">
+            Your analyzed repositories and codebase intelligence live here.
           </p>
         </div>
+
         <Link
           href="/projects/new"
           className={cn(
-            buttonVariants({ size: "lg" }),
-            "bg-[linear-gradient(135deg,#06b6d4_0%,#0e7490_100%)] text-white shadow-[0_14px_32px_rgba(8,145,178,0.25)] hover:opacity-90",
+            buttonVariants({ size: "default" }),
+            "repolens-primary-button",
           )}
         >
           + Analyze repository
         </Link>
       </header>
 
-      <section className="mb-8 grid gap-3 sm:grid-cols-3">
-        <div className="app-panel px-5 py-4">
-          <p className="text-xs text-[color:var(--app-muted)]">
-            Analyses today
-          </p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {usage.analysesUsedToday}
-            <span className="text-sm font-normal text-[color:var(--app-muted)]">
-              {" "}
-              / {usage.limits.analysesPerDay}
-            </span>
-          </p>
+      <section className="repolens-usage-grid">
+        <div className="repolens-usage-card">
+          <span>ANALYSES / DAY</span>
+          <strong>{usage.analysesUsedToday}</strong>
+          <small>/ {usage.limits.analysesPerDay}</small>
         </div>
 
-        <div className="app-panel px-5 py-4">
-          <p className="text-xs text-[color:var(--app-muted)]">
-            AI interactions this hour
-          </p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {usage.chatUsedThisHour}
-            <span className="text-sm font-normal text-[color:var(--app-muted)]">
-              {" "}
-              / {usage.limits.chatPerHour}
-            </span>
-          </p>
+        <div className="repolens-usage-card">
+          <span>AI QUERIES / HOUR</span>
+          <strong>{usage.chatUsedThisHour}</strong>
+          <small>/ {usage.limits.chatPerHour}</small>
         </div>
 
-        <div className="app-panel px-5 py-4">
-          <p className="text-xs text-[color:var(--app-muted)]">Projects</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {usage.projectCount}
-            <span className="text-sm font-normal text-[color:var(--app-muted)]">
-              {" "}
-              / {usage.limits.maxProjects}
-            </span>
-          </p>
+        <div className="repolens-usage-card">
+          <span>PROJECTS</span>
+          <strong>{usage.projectCount}</strong>
+          <small>/ {usage.limits.maxProjects}</small>
         </div>
       </section>
 
       {projects.length === 0 ? (
-        <section className="app-panel border-dashed px-8 py-14 text-center">
-          <p className="app-kicker">Get started</p>
-          <h2 className="app-title mt-3 text-2xl">No projects yet</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-[color:var(--app-muted)]">
-            Connect a GitHub repository or upload a ZIP to run your first
-            codebase health check.
+        <section className="repolens-empty-state">
+          <span className="repolens-workspace-kicker">NO REPOSITORIES</span>
+
+          <h2>Analyze your first codebase</h2>
+
+          <p>
+            Connect a GitHub repository or upload a ZIP to build searchable
+            code knowledge.
           </p>
+
           <Link
             href="/projects/new"
             className={cn(
-              buttonVariants({ size: "lg" }),
-              "mt-6 bg-[linear-gradient(135deg,#06b6d4_0%,#0e7490_100%)] text-white hover:opacity-90",
+              buttonVariants({ size: "default" }),
+              "repolens-primary-button",
             )}
           >
-            Analyze new repository
+            Analyze repository →
           </Link>
         </section>
       ) : (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-sm font-medium text-[color:var(--app-muted)]">
-              {projects.length} project{projects.length === 1 ? "" : "s"}
-            </h2>
+        <section className="repolens-projects-section">
+          <div className="repolens-projects-heading">
+            <h2>PROJECTS</h2>
+            <span>{projects.length} REPOSITORIES</span>
           </div>
-          <ul className="app-panel overflow-hidden divide-y divide-[color:var(--app-line)]">
+
+          <div className="repolens-project-list">
             {projects.map((project) => {
               const inFlight =
-                project.status === "processing" || project.status === "queued";
+                project.status === "processing" ||
+                project.status === "queued";
+
               const href = inFlight
                 ? `/projects/${project.id}/progress`
                 : `/projects/${project.id}`;
 
               return (
-                <li
+                <Link
                   key={project.id}
-                  className="flex items-center gap-3 px-5 py-4"
+                  href={href}
+                  className="repolens-project-row"
                 >
-                  <Link
-                    href={href}
-                    className="min-w-0 flex-1 transition-opacity hover:opacity-80"
-                  >
-                    <p className="truncate font-medium tracking-tight">
-                      {project.name}
-                    </p>
-                    <p className="mt-0.5 text-xs text-[color:var(--app-muted)]">
+                  <div className="repolens-project-main">
+                    <h3>{project.name}</h3>
+
+                    <p>
                       {project.framework ?? "Unknown framework"} ·{" "}
                       {project.fileCount} source files
                       {project._count.chunks
@@ -148,27 +134,31 @@ export default async function DashboardPage() {
                         : ""}
                       {project.source === "github" ? " · GitHub" : " · ZIP"}
                     </p>
-                  </Link>
+                  </div>
 
-                  <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                  <div className="repolens-project-meta">
                     {project.report ? (
-                      <span className="hidden text-sm tabular-nums text-[color:var(--app-muted)] md:inline">
-                        Health{" "}
-                        <span className="font-semibold text-[color:var(--app-accent-deep)]">
-                          {project.report.healthScore}
-                        </span>
+                      <span className="repolens-health">
+                        HEALTH{" "}
+                        <strong>{project.report.healthScore}</strong>
                       </span>
                     ) : null}
+
                     <span
-                      className={cn("app-status", statusClass(project.status))}
+                      className={cn(
+                        "app-status",
+                        statusClass(project.status),
+                      )}
                     >
                       {project.status}
                     </span>
+
+                    <span className="repolens-project-arrow">→</span>
                   </div>
-                </li>
+                </Link>
               );
             })}
-          </ul>
+          </div>
         </section>
       )}
     </main>
