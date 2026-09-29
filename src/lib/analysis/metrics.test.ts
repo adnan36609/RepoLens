@@ -56,7 +56,10 @@ describe("computeDeterministicMetrics", () => {
     expect(metrics.untestedCriticalPaths).toContain("src/lib/payment.ts");
     expect(
       metrics.issues.some(
-        (i) => i.category === "testing" && i.filePath === "src/lib/payment.ts",
+        (i) =>
+          i.category === "testing" &&
+          i.title === "Critical areas may lack tests" &&
+          i.filePath === null,
       ),
     ).toBe(true);
   });

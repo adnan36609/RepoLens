@@ -12,6 +12,7 @@ export type DeterministicMetrics = {
   testFileCount: number;
   sourceFileCount: number;
   testedSourceApproxPercent: number;
+  testInfrastructureDetected: boolean;
   untestedCriticalPaths: string[];
   secretHits: Array<{ filePath: string; line: number; hint: string }>;
   issues: ReportIssue[];
@@ -117,6 +118,27 @@ export function computeDeterministicMetrics(
   const sourceFiles = files.filter((file) => !isTestFile(file.relativePath));
   const testFiles = files.filter((file) => isTestFile(file.relativePath));
 
+  const testInfrastructureDetected =
+    testFiles.length > 0 ||
+    files.some((file) => {
+      const name = path.basename(file.relativePath).toLowerCase();
+
+      return [
+        "vitest.config.ts",
+        "vitest.config.js",
+        "vitest.config.mts",
+        "vitest.config.mjs",
+        "playwright.config.ts",
+        "playwright.config.js",
+        "playwright.config.mts",
+        "playwright.config.mjs",
+        "jest.config.ts",
+        "jest.config.js",
+        "jest.config.mjs",
+        "jest.config.cjs",
+      ].includes(name);
+    });
+
   const largeFiles = sourceFiles
     .map((file) => ({
       filePath: file.relativePath,
@@ -157,20 +179,24 @@ export function computeDeterministicMetrics(
       : Math.round((matchedSources / sourceFiles.length) * 100);
 
   const criticalKeywords = ["auth", "payment", "billing", "password", "token"];
+
   const untestedCriticalPaths = sourceFiles
     .filter((file) => {
       const lower = file.relativePath.toLowerCase();
       const looksCritical = criticalKeywords.some((keyword) =>
         lower.includes(keyword),
       );
+
       if (!looksCritical) return false;
+
       const base = stripExt(file.relativePath);
+
       return ![...testedBases].some(
         (tested) => tested.endsWith(base) || base.endsWith(tested),
       );
     })
     .map((file) => file.relativePath)
-    .slice(0, 12);
+    .slice(0, 3);
 
   const secretHits: DeterministicMetrics["secretHits"] = [];
   for (const file of sourceFiles) {
@@ -221,13 +247,13 @@ export function computeDeterministicMetrics(
     });
   }
 
-  for (const filePath of untestedCriticalPaths.slice(0, 8)) {
+  if (untestedCriticalPaths.length > 0) {
     issues.push({
-      title: "Critical area may lack tests",
-      description: `No nearby test file was found for a path that looks security/payment related.`,
+      title: "Critical areas may lack tests",
+      description: `No nearby test files were found for ${untestedCriticalPaths.length} security/payment-related source file(s).`,
       severity: "high",
       category: "testing",
-      filePath,
+      filePath: null,
     });
   }
 
@@ -247,6 +273,7 @@ export function computeDeterministicMetrics(
     testFileCount: testFiles.length,
     sourceFileCount: sourceFiles.length,
     testedSourceApproxPercent,
+    testInfrastructureDetected,
     untestedCriticalPaths,
     secretHits,
     issues,

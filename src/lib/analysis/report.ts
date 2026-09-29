@@ -22,7 +22,10 @@ function scoreFromIssues(
   const penalty = issues
     .filter((issue) => issue.category === category)
     .reduce((sum, issue) => sum + SEVERITY_PENALTY[issue.severity], 0);
-  return clampScore(base - penalty);
+
+  const cappedPenalty = Math.min(penalty, 45);
+
+  return clampScore(base - cappedPenalty);
 }
 
 function sortIssues(issues: ReportIssue[]): ReportIssue[] {
@@ -105,7 +108,9 @@ export async function generateProjectReport(
         "codeQuality",
       ),
       testing: scoreFromIssues(
-        Math.max(40, metrics.testedSourceApproxPercent),
+        metrics.testInfrastructureDetected
+          ? Math.max(60, metrics.testedSourceApproxPercent)
+          : Math.max(40, metrics.testedSourceApproxPercent),
         issues,
         "testing",
       ),
